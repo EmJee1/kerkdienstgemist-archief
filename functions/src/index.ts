@@ -53,7 +53,7 @@ export const syncRecentServices = functions.pubsub
 		let items: IKDGService[]
 
 		try {
-			items = await getKDGServices(6)
+			items = await getKDGServices(10)
 		} catch (err) {
 			functions.logger.error(err)
 			return
