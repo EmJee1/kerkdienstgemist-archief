@@ -51,7 +51,6 @@ export const syncRecentServices = functions.pubsub
 	.timeZone('Europe/Amsterdam')
 	.onRun(async () => {
 		let items: IKDGService[]
-
 		try {
 			items = await getKDGServices(10)
 		} catch (err) {
@@ -65,12 +64,12 @@ export const syncRecentServices = functions.pubsub
 
 				if (!processed) {
 					// if not processed (service already exists in firestore)
-					// stop processing of remaining services, because rss feed is chronologically ordered
-					break
+					// continue with the next service, this adds some resilience (automatically add it if it failed in a previous job)
+					continue
 				}
 			} catch (err) {
 				functions.logger.error(err)
-				break
+				continue
 			}
 
 			functions.logger.info(`${getServiceFileName(item)} added`)
