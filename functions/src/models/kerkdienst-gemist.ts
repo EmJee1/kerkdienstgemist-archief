@@ -38,3 +38,12 @@ export interface IService {
    */
   createdAt: Date;
 }
+
+/**
+ * A list of all pastors that have at least one service.
+ * Pastors are added to this list whenever a new service is added to Firestore and that Pastor is not in the index yet.
+ * The names that are stored are directly taken from Kerkdienstgemist, without any modifications.
+ */
+export interface IPastorsIndex {
+  names: string[];
+}

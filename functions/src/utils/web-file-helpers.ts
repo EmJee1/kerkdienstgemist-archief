@@ -3,6 +3,7 @@ import { error } from "firebase-functions/logger";
 import { bucket, firestore } from "../firebase/firebase";
 import { IKDGService, IService } from "../models/kerkdienst-gemist";
 import { File } from "@google-cloud/storage";
+import { addPastorToIndexIfNotAlreadyExists } from "./pastors-index";
 
 export const downloadFromUrl = async (
   url: string,
@@ -39,7 +40,7 @@ export const insertServiceToFirestore = async (
   service: IKDGService,
   location: string,
   file: File,
-) => {
+): Promise<IService> => {
   const docData: IService = {
     title: service.title,
     file: location,
@@ -53,6 +54,7 @@ export const insertServiceToFirestore = async (
   try {
     const docId = getServiceId(service);
     await firestore.collection("services").doc(docId).set(docData);
+    return docData;
   } catch (err) {
     await file.delete();
 
@@ -84,7 +86,10 @@ export const serviceProcessingFlow = async (service: IKDGService) => {
     contentType,
   );
 
-  await insertServiceToFirestore(service, fileLocation, file);
+  const doc = await insertServiceToFirestore(service, fileLocation, file);
+  if (doc.pastor) {
+    await addPastorToIndexIfNotAlreadyExists(doc.pastor);
+  }
 
   return true;
 };
