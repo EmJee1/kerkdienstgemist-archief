@@ -44,7 +44,7 @@
           @clear="clearFilters"
         />
 
-        <!-- Services Grid -->
+        <!-- Services Table -->
         <div v-if="loading && services.length === 0" class="text-center py-12">
           <div
             class="animate-spin rounded-full h-12 w-12 border-b-2 border-neutral-900 mx-auto"
@@ -52,30 +52,11 @@
           <p class="mt-4 text-neutral-600">Diensten laden...</p>
         </div>
 
-        <div
-          v-else-if="filteredServices.length === 0"
-          class="text-center py-12"
-        >
-          <p class="text-neutral-600">Geen diensten gevonden</p>
-        </div>
-
-        <div
-          v-else
-          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-        >
-          <ServiceCard
-            v-for="service in filteredServices"
-            :key="service.id"
-            :service="service"
-            :loading="loadingServiceId === service.id"
-            @view="viewService"
-            @share="shareService"
-          />
-        </div>
+        <DataTable v-else :columns="tableColumns" :data="filteredServices" />
 
         <!-- Load More Button -->
         <div
-          v-if="!loading && hasMore && filteredServices.length > 0"
+          v-if="!loading && hasMore && services.length > 0"
           class="mt-8 text-center"
         >
           <Button @click="loadMore" :disabled="loading">
@@ -110,11 +91,12 @@ import { firestore } from "@/firebase/firebase";
 import { useAuth } from "@/composables/useAuth";
 import type { IService } from "@/models/service";
 import Login from "@/components/Login.vue";
-import ServiceCard from "@/components/ServiceCard.vue";
 import ServiceFilters from "@/components/ServiceFilters.vue";
+import DataTable from "@/components/DataTable.vue";
 import Toaster from "@/components/Toaster.vue";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-vue-next";
+import { columns } from "@/components/columns";
 
 const { user, loading: authLoading, logout } = useAuth();
 
@@ -140,6 +122,11 @@ const availablePastors = computed(() => {
     .filter((p): p is string => !!p);
   return [...new Set(pastors)].sort();
 });
+
+// Computed: Table columns with action handlers
+const tableColumns = computed(() =>
+  columns(viewService, loadingServiceId.value),
+);
 
 // Computed: Filtered services
 const filteredServices = computed(() => {
@@ -263,20 +250,6 @@ const viewService = async (service: IService) => {
   const signedUrl = await fetchSignedUrl(service);
   if (signedUrl) {
     window.open(signedUrl, "_blank");
-  }
-};
-
-const shareService = async (service: IService) => {
-  const signedUrl = await fetchSignedUrl(service);
-  if (signedUrl) {
-    navigator.clipboard
-      .writeText(signedUrl)
-      .then(() => {
-        toast.success("Link gekopieerd naar klembord");
-      })
-      .catch(() => {
-        toast.error("Kon link niet kopiëren");
-      });
   }
 };
 
