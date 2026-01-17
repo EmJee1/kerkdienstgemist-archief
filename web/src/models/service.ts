@@ -7,3 +7,7 @@ export interface IService {
   createdAt: Timestamp
   pastor?: string
 }
+
+export interface IPastorsIndex {
+  names: string[]
+}

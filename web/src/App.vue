@@ -84,6 +84,8 @@ import {
   orderBy,
   limit,
   getDocs,
+  getDoc,
+  doc,
   startAfter,
   where,
   Timestamp,
@@ -92,7 +94,7 @@ import { toast } from "vue-sonner";
 import { firestore } from "@/firebase/firebase";
 import { useAuth } from "@/composables/useAuth";
 import type { User } from "firebase/auth";
-import type { IService } from "@/models/service";
+import type { IService, IPastorsIndex } from "@/models/service";
 import Login from "@/components/Login.vue";
 import ServiceFilters from "@/components/ServiceFilters.vue";
 import DataTable from "@/components/DataTable.vue";
@@ -117,19 +119,26 @@ const CLOUD_FUNCTION_BASE_URL =
 const dateFrom = ref("");
 const dateTo = ref("");
 const selectedPastor = ref("all");
-
-// Computed: Available pastors for filter
-const availablePastors = computed(() => {
-  const pastors = services.value
-    .map((s) => s.pastor)
-    .filter((p): p is string => !!p);
-  return [...new Set(pastors)].sort();
-});
+const availablePastors = ref<string[]>([]);
 
 // Computed: Table columns with action handlers
 const tableColumns = computed(() =>
   columns(viewService, loadingServiceId.value),
 );
+
+// Load available pastors from Firestore index
+const loadPastors = async () => {
+  try {
+    const pastorsDoc = await getDoc(doc(firestore, "indexes", "pastors"));
+    if (pastorsDoc.exists()) {
+      const data = pastorsDoc.data() as IPastorsIndex;
+      availablePastors.value = data.names.sort();
+    }
+  } catch (error) {
+    console.error("Error loading pastors:", error);
+    toast.error("Fout bij het laden van voorgangers");
+  }
+};
 
 // Load services from Firestore with filters
 const loadServices = async (isLoadMore = false) => {
@@ -247,9 +256,10 @@ const viewService = async (service: IService) => {
 };
 
 onMounted(() => {
-  // Load services when authenticated
+  // Load services and pastors when authenticated
   if (user.value) {
     loadServices();
+    loadPastors();
   }
 });
 
@@ -257,6 +267,7 @@ onMounted(() => {
 watch(user, (newUser: User | null) => {
   if (newUser && services.value.length === 0) {
     loadServices();
+    loadPastors();
   }
 });
 
