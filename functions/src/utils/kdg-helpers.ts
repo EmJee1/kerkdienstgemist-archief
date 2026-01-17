@@ -1,16 +1,27 @@
-import * as functions from 'firebase-functions'
-import RssParser from 'rss-parser'
-import { IKDGService } from '../models/kerkdienst-gemist'
+import RssParser from "rss-parser";
+import { IKDGService } from "../models/kerkdienst-gemist";
 
-const rss = {
-	playlist: Number(functions.config().kerkdienstgemist.rss),
-	accessKey: functions.config().kerkdienstgemist.access_key,
+const parser = new RssParser();
+
+interface KerkdienstgemistSecrets {
+  playlist: string;
+  accessKey: string;
 }
 
-const RSS_FEED_URL = `https://kerkdienstgemist.nl/playlists/${rss.playlist}.rss?access_key=${rss.accessKey}&media=audio`
+export const getKDGServices = async (
+  secrets: KerkdienstgemistSecrets,
+  limit = 9,
+): Promise<IKDGService[]> => {
+  const url = new URL(
+    `https://kerkdienstgemist.nl/playlists/${secrets.playlist}.rss`,
+  );
 
-const parser = new RssParser()
+  url.search = new URLSearchParams({
+    accessKey: secrets.accessKey,
+    media: "audio",
+    limit: limit.toString(),
+  }).toString();
 
-export const getKDGServices = async (limit = 9): Promise<IKDGService[]> =>
-	(await parser.parseURL(`${RSS_FEED_URL}&limit=${limit}`))
-		.items as IKDGService[]
+  const services = await parser.parseURL(url.toString());
+  return services.items as IKDGService[];
+};

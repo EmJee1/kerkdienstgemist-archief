@@ -1,77 +1,83 @@
-import * as functions from 'firebase-functions'
-import { getKDGServices } from './utils/kdg-helpers'
-import { bucket } from './firebase/firebase'
+import { debug, info, error } from "firebase-functions/logger";
+import { onRequest } from "firebase-functions/https";
+import { onSchedule } from "firebase-functions/scheduler";
+import { getKDGServices } from "./utils/kdg-helpers";
+import { bucket } from "./firebase/firebase";
 import {
-	getExpirationDate,
-	getServiceFileName,
-	serviceProcessingFlow,
-} from './utils/web-file-helpers'
-import { IKDGService } from './models/kerkdienst-gemist'
+  getExpirationDate,
+  getServiceFileName,
+  serviceProcessingFlow,
+} from "./utils/web-file-helpers";
+import { defineSecret, defineString } from "firebase-functions/params";
 
-export const createSignedServiceDownloadUrl = functions.https.onRequest(
-	async (req, res) => {
-		res.header('Access-Control-Allow-Origin', '*')
+// Access key for the Kerkdienstgemist RSS feed, playlist ID: 10698
+const kerkdienstgemistAccessKey = defineSecret("KERKDIENSTGEMIST_ACCESS_KEY");
+const KERKDIENSTGEMIST_PLAYLIST = defineString("KERKDIENSTGEMIST_PLAYLIST_ID");
 
-		const servicePath = req.query.servicePath?.toString()
+export const createSignedServiceDownloadUrl = onRequest(async (req, res) => {
+  res.header("Access-Control-Allow-Origin", "*");
 
-		if (!servicePath) {
-			functions.logger.debug(`Requested signed url without servicePath`)
-			res.sendStatus(422)
-			return
-		}
+  const servicePath = req.query.servicePath?.toString();
 
-		const file = bucket.file(servicePath)
+  if (!servicePath) {
+    debug(`Requested signed url without servicePath`);
+    res.sendStatus(422);
+    return;
+  }
 
-		if (!(await file.exists())[0]) {
-			functions.logger.debug(
-				`Requested service '${servicePath}' not found`
-			)
-			res.sendStatus(404)
-			return
-		}
+  const file = bucket.file(servicePath);
 
-		try {
-			functions.logger.info(`Creating signed url for '${servicePath}'`)
+  if (!(await file.exists())[0]) {
+    debug(`Requested service '${servicePath}' not found`);
+    res.sendStatus(404);
+    return;
+  }
 
-			const signedUrl = await file.getSignedUrl({
-				action: 'read',
-				expires: getExpirationDate({ days: 7 }),
-			})
+  try {
+    info(`Creating signed url for '${servicePath}'`);
 
-			res.json({ url: signedUrl[0] }).status(200)
-		} catch (err) {
-			functions.logger.error(err)
-			res.sendStatus(500)
-		}
-	}
-)
+    const signedUrl = await file.getSignedUrl({
+      action: "read",
+      expires: getExpirationDate({ days: 7 }),
+    });
 
-export const syncRecentServices = functions.pubsub
-	.schedule('59 23 * * 7')
-	.timeZone('Europe/Amsterdam')
-	.onRun(async () => {
-		let items: IKDGService[]
-		try {
-			items = await getKDGServices(10)
-		} catch (err) {
-			functions.logger.error(err)
-			return
-		}
+    res.json({ url: signedUrl[0] }).status(200);
+  } catch (err) {
+    error(err);
+    res.sendStatus(500);
+  }
+});
 
-		for (const item of items) {
-			try {
-				const processed = await serviceProcessingFlow(item)
+export const syncRecentServices = onSchedule(
+  {
+    schedule: "59 23 * * 7",
+    timeZone: "Europe/Amsterdam",
+    secrets: [kerkdienstgemistAccessKey],
+  },
+  async () => {
+    const items = await getKDGServices({
+      playlist: KERKDIENSTGEMIST_PLAYLIST.value(),
+      accessKey: kerkdienstgemistAccessKey.value(),
+    });
 
-				if (!processed) {
-					// if not processed (service already exists in firestore)
-					// continue with the next service, this adds some resilience (automatically add it if it failed in a previous job)
-					continue
-				}
-			} catch (err) {
-				functions.logger.error(err)
-				continue
-			}
+    for (const item of items) {
+      try {
+        const processed = await serviceProcessingFlow(item);
 
-			functions.logger.info(`${getServiceFileName(item)} added`)
-		}
-	})
+        if (!processed) {
+          info(
+            `${getServiceFileName(item)} was not added because it already existed`,
+          );
+
+          // if not processed (service already exists in firestore)
+          // continue with the next service; this adds some resilience by double-checking services in the past
+          continue;
+        }
+
+        info(`${getServiceFileName(item)} added`);
+      } catch (err) {
+        error(err);
+      }
+    }
+  },
+);
