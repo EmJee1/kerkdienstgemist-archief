@@ -3,7 +3,10 @@
     <div class="rounded-md border">
       <Table>
         <TableHeader>
-          <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
+          <TableRow
+            v-for="headerGroup in table.getHeaderGroups()"
+            :key="headerGroup.id"
+          >
             <TableHead v-for="header in headerGroup.headers" :key="header.id">
               <FlexRender
                 v-if="!header.isPlaceholder"
@@ -38,40 +41,23 @@
         </TableBody>
       </Table>
     </div>
-
-    <!-- Pagination -->
-    <div class="flex items-center justify-end space-x-2">
-      <Button
-        variant="outline"
-        size="sm"
-        :disabled="!table.getCanPreviousPage()"
-        @click="table.previousPage()"
-      >
-        Vorige
-      </Button>
-      <Button
-        variant="outline"
-        size="sm"
-        :disabled="!table.getCanNextPage()"
-        @click="table.nextPage()"
-      >
-        Volgende
-      </Button>
-    </div>
   </div>
 </template>
 
 <script setup lang="ts" generic="TData, TValue">
-import type { ColumnDef, SortingState, ColumnFiltersState } from '@tanstack/vue-table'
+import type {
+  ColumnDef,
+  SortingState,
+  ColumnFiltersState,
+} from "@tanstack/vue-table";
 import {
   FlexRender,
   getCoreRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   getFilteredRowModel,
   useVueTable,
-} from '@tanstack/vue-table'
-import { ref } from 'vue'
+} from "@tanstack/vue-table";
+import { ref } from "vue";
 import {
   Table,
   TableBody,
@@ -79,52 +65,46 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 
 const props = defineProps<{
-  columns: ColumnDef<TData, TValue>[]
-  data: TData[]
-}>()
+  columns: ColumnDef<TData, TValue>[];
+  data: TData[];
+}>();
 
-const sorting = ref<SortingState>([])
-const columnFilters = ref<ColumnFiltersState>([])
+const sorting = ref<SortingState>([]);
+const columnFilters = ref<ColumnFiltersState>([]);
 
 const table = useVueTable({
   get data() {
-    return props.data
+    return props.data;
   },
   get columns() {
-    return props.columns
+    return props.columns;
   },
   getCoreRowModel: getCoreRowModel(),
-  getPaginationRowModel: getPaginationRowModel(),
   getSortedRowModel: getSortedRowModel(),
   getFilteredRowModel: getFilteredRowModel(),
   onSortingChange: (updaterOrValue) => {
     sorting.value =
-      typeof updaterOrValue === 'function'
+      typeof updaterOrValue === "function"
         ? updaterOrValue(sorting.value)
-        : updaterOrValue
+        : updaterOrValue;
   },
   onColumnFiltersChange: (updaterOrValue) => {
     columnFilters.value =
-      typeof updaterOrValue === 'function'
+      typeof updaterOrValue === "function"
         ? updaterOrValue(columnFilters.value)
-        : updaterOrValue
+        : updaterOrValue;
   },
   state: {
     get sorting() {
-      return sorting.value
+      return sorting.value;
     },
     get columnFilters() {
-      return columnFilters.value
+      return columnFilters.value;
     },
   },
-  initialState: {
-    pagination: {
-      pageSize: 20,
-    },
-  },
-})
+});
 </script>
