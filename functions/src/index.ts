@@ -55,10 +55,14 @@ export const syncRecentServices = onSchedule(
     secrets: [kerkdienstgemistAccessKey],
   },
   async () => {
+    info("Starting sync recent services");
+
     const items = await getKDGServices({
       playlist: KERKDIENSTGEMIST_PLAYLIST.value(),
       accessKey: kerkdienstgemistAccessKey.value(),
     });
+
+    info(`Fetched ${items.length} services to process`);
 
     for (const item of items) {
       try {
