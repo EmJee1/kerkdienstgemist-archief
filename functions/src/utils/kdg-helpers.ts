@@ -17,7 +17,7 @@ export const getKDGServices = async (
   );
 
   url.search = new URLSearchParams({
-    accessKey: secrets.accessKey,
+    access_key: secrets.accessKey,
     media: "audio",
     limit: limit.toString(),
   }).toString();
