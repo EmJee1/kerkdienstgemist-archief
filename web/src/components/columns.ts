@@ -57,7 +57,7 @@ export const columns = (
             isLoading
               ? h(Loader2, { class: "w-4 h-4 mr-2 animate-spin" })
               : h(ExternalLink, { class: "w-4 h-4 mr-2" }),
-            "Bekijk",
+            "Openen",
           ],
         ),
       ]);
