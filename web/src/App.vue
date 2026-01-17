@@ -52,7 +52,7 @@
           <p class="mt-4 text-neutral-600">Diensten laden...</p>
         </div>
 
-        <DataTable v-else :columns="tableColumns" :data="filteredServices" />
+        <DataTable v-else :columns="tableColumns" :data="services" />
 
         <!-- Load More Button -->
         <div
@@ -77,7 +77,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import {
   collection,
   query,
@@ -85,10 +85,13 @@ import {
   limit,
   getDocs,
   startAfter,
+  where,
+  Timestamp,
 } from "firebase/firestore";
 import { toast } from "vue-sonner";
 import { firestore } from "@/firebase/firebase";
 import { useAuth } from "@/composables/useAuth";
+import type { User } from "firebase/auth";
 import type { IService } from "@/models/service";
 import Login from "@/components/Login.vue";
 import ServiceFilters from "@/components/ServiceFilters.vue";
@@ -105,7 +108,7 @@ const services = ref<IService[]>([]);
 const loading = ref(false);
 const hasMore = ref(true);
 const loadingServiceId = ref<string | null>(null);
-const LIMIT = 12;
+const LIMIT = 18;
 
 const CLOUD_FUNCTION_BASE_URL =
   "https://us-central1-kerdienstgemist-archief.cloudfunctions.net";
@@ -128,60 +131,49 @@ const tableColumns = computed(() =>
   columns(viewService, loadingServiceId.value),
 );
 
-// Computed: Filtered services
-const filteredServices = computed(() => {
-  return services.value.filter((service) => {
-    // Filter by date range
-    if (dateFrom.value) {
-      const serviceDate = service.createdAt.toDate();
-      const fromDate = new Date(dateFrom.value);
-      if (serviceDate < fromDate) return false;
-    }
-
-    if (dateTo.value) {
-      const serviceDate = service.createdAt.toDate();
-      const toDate = new Date(dateTo.value);
-      toDate.setHours(23, 59, 59, 999); // End of day
-      if (serviceDate > toDate) return false;
-    }
-
-    // Filter by pastor
-    if (selectedPastor.value !== "all") {
-      if (service.pastor !== selectedPastor.value) return false;
-    }
-
-    return true;
-  });
-});
-
-// Load services from Firestore
+// Load services from Firestore with filters
 const loadServices = async (isLoadMore = false) => {
   loading.value = true;
 
   try {
     const servicesCollection = collection(firestore, "services");
 
-    let q;
+    // Build query constraints
+    const constraints = [];
+
+    // Date range filters
+    if (dateFrom.value) {
+      const fromDate = new Date(dateFrom.value);
+      fromDate.setHours(0, 0, 0, 0);
+      constraints.push(where("createdAt", ">=", Timestamp.fromDate(fromDate)));
+    }
+
+    if (dateTo.value) {
+      const toDate = new Date(dateTo.value);
+      toDate.setHours(23, 59, 59, 999);
+      constraints.push(where("createdAt", "<=", Timestamp.fromDate(toDate)));
+    }
+
+    // Pastor filter
+    if (selectedPastor.value !== "all") {
+      constraints.push(where("pastor", "==", selectedPastor.value));
+    }
+
+    // Always order by createdAt
+    constraints.push(orderBy("createdAt", "desc"));
+
+    // Handle pagination
     if (isLoadMore && services.value.length > 0) {
       const lastService = services.value[services.value.length - 1];
       if (lastService) {
-        q = query(
-          servicesCollection,
-          orderBy("createdAt", "desc"),
-          startAfter(lastService.createdAt),
-          limit(LIMIT),
-        );
-      } else {
-        q = query(
-          servicesCollection,
-          orderBy("createdAt", "desc"),
-          limit(LIMIT),
-        );
+        constraints.push(startAfter(lastService.createdAt));
       }
-    } else {
-      q = query(servicesCollection, orderBy("createdAt", "desc"), limit(LIMIT));
     }
 
+    // Add limit
+    constraints.push(limit(LIMIT));
+
+    const q = query(servicesCollection, ...constraints);
     const snapshot = await getDocs(q);
 
     const newServices = snapshot.docs.map((doc) => ({
@@ -212,6 +204,7 @@ const clearFilters = () => {
   dateFrom.value = "";
   dateTo.value = "";
   selectedPastor.value = "all";
+  // Reload services will be triggered by watchers
 };
 
 const handleLogout = async () => {
@@ -261,9 +254,15 @@ onMounted(() => {
 });
 
 // Watch for user authentication and load services
-import { watch } from "vue";
-watch(user, (newUser) => {
+watch(user, (newUser: User | null) => {
   if (newUser && services.value.length === 0) {
+    loadServices();
+  }
+});
+
+// Watch for filter changes and reload services
+watch([dateFrom, dateTo, selectedPastor], () => {
+  if (user.value) {
     loadServices();
   }
 });

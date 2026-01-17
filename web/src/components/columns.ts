@@ -47,6 +47,7 @@ export const columns = (
         h(
           Button,
           {
+            class: "cursor-pointer",
             variant: "outline",
             size: "sm",
             disabled: isLoading,
