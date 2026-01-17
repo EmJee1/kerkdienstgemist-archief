@@ -10,7 +10,7 @@ import {
 } from "./utils/web-file-helpers";
 import { defineSecret, defineString } from "firebase-functions/params";
 
-// Access key for the Kerkdienstgemist RSS feed, playlist ID: 10698
+// Access key for the Kerkdienstgemist RSS feed
 const kerkdienstgemistAccessKey = defineSecret("KERKDIENSTGEMIST_ACCESS_KEY");
 const KERKDIENSTGEMIST_PLAYLIST = defineString("KERKDIENSTGEMIST_PLAYLIST_ID");
 
