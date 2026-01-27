@@ -72,6 +72,14 @@
       </main>
     </div>
 
+    <EditServiceDialog
+      :open="editDialogOpen"
+      :service="editingService"
+      :pastors="availablePastors"
+      @update:open="editDialogOpen = $event"
+      @save="updateServicePastor"
+    />
+
     <Toaster />
   </div>
 </template>
@@ -89,6 +97,7 @@ import {
   startAfter,
   where,
   Timestamp,
+  updateDoc,
 } from "firebase/firestore";
 import { toast } from "vue-sonner";
 import { firestore } from "@/firebase/firebase";
@@ -99,6 +108,7 @@ import Login from "@/components/Login.vue";
 import ServiceFilters from "@/components/ServiceFilters.vue";
 import DataTable from "@/components/DataTable.vue";
 import Toaster from "@/components/Toaster.vue";
+import EditServiceDialog from "@/components/EditServiceDialog.vue";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-vue-next";
 import { columns } from "@/components/columns";
@@ -121,9 +131,13 @@ const dateTo = ref("");
 const selectedPastor = ref("all");
 const availablePastors = ref<string[]>([]);
 
+// Edit dialog state
+const editDialogOpen = ref(false);
+const editingService = ref<IService | null>(null);
+
 // Computed: Table columns with action handlers
 const tableColumns = computed(() =>
-  columns(viewService, loadingServiceId.value),
+  columns(viewService, editService, loadingServiceId.value),
 );
 
 // Load available pastors from Firestore index
@@ -252,6 +266,32 @@ const viewService = async (service: IService) => {
   const signedUrl = await fetchSignedUrl(service);
   if (signedUrl) {
     window.open(signedUrl, "_blank");
+  }
+};
+
+const editService = (service: IService) => {
+  editingService.value = service;
+  editDialogOpen.value = true;
+};
+
+const updateServicePastor = async (serviceId: string, pastor: string) => {
+  try {
+    const serviceRef = doc(firestore, "services", serviceId);
+    await updateDoc(serviceRef, {
+      pastor: pastor || null,
+    });
+
+    // Update the local services array
+    const serviceIndex = services.value.findIndex((s) => s.id === serviceId);
+    if (serviceIndex !== -1) {
+      services.value[serviceIndex].pastor = pastor || undefined;
+    }
+
+    toast.success("Metadata succesvol bijgewerkt");
+    editDialogOpen.value = false;
+  } catch (error) {
+    console.error("Error updating service:", error);
+    toast.error("Fout bij het bijwerken van metadata");
   }
 };
 

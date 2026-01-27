@@ -2,11 +2,12 @@ import type { ColumnDef } from "@tanstack/vue-table";
 import type { IService } from "@/models/service";
 import { h } from "vue";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Loader2 } from "lucide-vue-next";
+import { ExternalLink, Loader2, Pencil } from "lucide-vue-next";
 import { formatDateTime } from "@/lib/datetime";
 
 export const columns = (
   onView: (service: IService) => void,
+  onEdit: (service: IService) => void,
   loadingServiceId: string | null,
 ): ColumnDef<IService>[] => [
   {
@@ -44,6 +45,16 @@ export const columns = (
       const isLoading = loadingServiceId === service.id;
 
       return h("div", { class: "flex gap-2" }, [
+        h(
+          Button,
+          {
+            class: "cursor-pointer",
+            variant: "outline",
+            size: "sm",
+            onClick: () => onEdit(service),
+          },
+          () => [h(Pencil, { class: "w-4 h-4 mr-2" }), "Bewerken"],
+        ),
         h(
           Button,
           {
