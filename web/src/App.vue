@@ -54,20 +54,19 @@
 
         <DataTable v-else :columns="tableColumns" :data="services" />
 
-        <!-- Load More Button -->
+        <!-- Infinite Scroll Trigger -->
         <div
-          v-if="!loading && hasMore && services.length > 0"
+          v-if="services.length > 0"
+          ref="scrollTrigger"
           class="mt-8 text-center"
         >
-          <Button @click="loadMore" :disabled="loading">
-            {{ loading ? "Laden..." : "Meer laden" }}
-          </Button>
-        </div>
-
-        <div v-if="loading && services.length > 0" class="mt-8 text-center">
           <div
+            v-if="loading"
             class="animate-spin rounded-full h-8 w-8 border-b-2 border-neutral-900 mx-auto"
           ></div>
+          <div v-else-if="!hasMore" class="text-neutral-500 text-sm">
+            Geen diensten meer om te laden
+          </div>
         </div>
       </main>
     </div>
@@ -85,7 +84,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import {
   collection,
   query,
@@ -120,6 +119,7 @@ const services = ref<IService[]>([]);
 const loading = ref(false);
 const hasMore = ref(true);
 const loadingServiceId = ref<string | null>(null);
+const scrollTrigger = ref<HTMLElement | null>(null);
 const LIMIT = 18;
 
 const CLOUD_FUNCTION_BASE_URL =
@@ -220,7 +220,9 @@ const loadServices = async (isLoadMore = false) => {
 };
 
 const loadMore = () => {
-  loadServices(true);
+  if (!loading.value && hasMore.value) {
+    loadServices(true);
+  }
 };
 
 const clearFilters = () => {
@@ -303,6 +305,37 @@ onMounted(() => {
     loadServices();
     loadPastors();
   }
+
+  // Setup intersection observer for infinite scroll
+  const observer = new IntersectionObserver(
+    (entries) => {
+      const entry = entries[0];
+      if (entry.isIntersecting && !loading.value && hasMore.value) {
+        loadMore();
+      }
+    },
+    {
+      rootMargin: "100px", // Trigger 100px before the element comes into view
+    }
+  );
+
+  // Watch for scrollTrigger ref changes and observe
+  watch(scrollTrigger, (newTrigger, oldTrigger) => {
+    if (oldTrigger) {
+      observer.unobserve(oldTrigger);
+    }
+    if (newTrigger) {
+      observer.observe(newTrigger);
+    }
+  });
+
+  // Cleanup on unmount
+  onUnmounted(() => {
+    if (scrollTrigger.value) {
+      observer.unobserve(scrollTrigger.value);
+    }
+    observer.disconnect();
+  });
 });
 
 // Watch for user authentication and load services
