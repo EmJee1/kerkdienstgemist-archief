@@ -287,7 +287,7 @@ const updateServicePastor = async (serviceId: string, pastor: string) => {
     const serviceIndex = services.value.findIndex((s) => s.id === serviceId);
     if (serviceIndex !== -1) {
       services.value = services.value.map((s, i) =>
-        i === serviceIndex ? { ...s, pastor: pastor || undefined } : s
+        i === serviceIndex ? { ...s, pastor: pastor || undefined } : s,
       );
     }
 
@@ -316,7 +316,7 @@ onMounted(() => {
     },
     {
       rootMargin: "100px", // Trigger 100px before the element comes into view
-    }
+    },
   );
 
   // Watch for scrollTrigger ref changes and observe
