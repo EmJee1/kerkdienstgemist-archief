@@ -205,7 +205,7 @@ const loadServices = async (isLoadMore = false) => {
     })) as IService[];
 
     if (isLoadMore) {
-      services.value.push(...newServices);
+      services.value = [...services.value, ...newServices];
     } else {
       services.value = newServices;
     }
