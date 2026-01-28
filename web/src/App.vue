@@ -284,7 +284,9 @@ const updateServicePastor = async (serviceId: string, pastor: string) => {
     // Update the local services array
     const serviceIndex = services.value.findIndex((s) => s.id === serviceId);
     if (serviceIndex !== -1) {
-      services.value[serviceIndex].pastor = pastor || undefined;
+      services.value = services.value.map((s, i) =>
+        i === serviceIndex ? { ...s, pastor: pastor || undefined } : s
+      );
     }
 
     toast.success("Metadata succesvol bijgewerkt");
