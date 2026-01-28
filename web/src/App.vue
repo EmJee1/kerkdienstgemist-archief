@@ -310,7 +310,7 @@ onMounted(() => {
   const observer = new IntersectionObserver(
     (entries) => {
       const entry = entries[0];
-      if (entry.isIntersecting && !loading.value && hasMore.value) {
+      if (entry?.isIntersecting && !loading.value && hasMore.value) {
         loadMore();
       }
     },
