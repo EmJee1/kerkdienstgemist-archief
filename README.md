@@ -1,6 +1,6 @@
 # Kerdienstgemist Archief
 
-Archive for church services hosted at [kerdienstgemist-archief.web.app](https://kerdienstgemist-archief.web.app).
+Archive for church services hosted at [kerkdienstgemist-archief.mart-jan.nl/](https://kerkdienstgemist-archief.mart-jan.nl/).
 
 ## Projects
 
