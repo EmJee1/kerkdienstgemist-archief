@@ -12,11 +12,12 @@ Firebase Cloud Functions that handle RSS feed parsing and automated archival. Bu
 ### upload
 
 CLI tool for manually uploading church services to the archive. Uses Firebase Admin SDK to interact with Firestore. May
-be used to automatically pull in services if they were missed by the scheduled pipeline.
+be used to automatically pull in services if they were missed by the scheduled pipeline (e.g. importing the first batch).
 
 ### web
 
 Vue 3 web application for browsing and accessing archived services. Built with Vite, TypeScript, and Bulma CSS.
+Hosted on Firebase Hosting, authentication via Firebase Auth.
 
 ## Deployment
 
