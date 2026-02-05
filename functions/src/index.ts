@@ -9,6 +9,7 @@ import {
   serviceProcessingFlow,
 } from "./utils/web-file-helpers";
 import { defineSecret, defineString } from "firebase-functions/params";
+import { KDGServiceArrayModel } from "./models/validation";
 
 // Access key for the Kerkdienstgemist RSS feed
 const kerkdienstgemistAccessKey = defineSecret("KERKDIENSTGEMIST_ACCESS_KEY");
@@ -57,20 +58,32 @@ export const syncRecentServices = onSchedule(
   async () => {
     info("Starting sync recent services");
 
-    const items = await getKDGServices({
+    const response = await getKDGServices({
       playlist: KERKDIENSTGEMIST_PLAYLIST.value(),
       accessKey: kerkdienstgemistAccessKey.value(),
     });
 
-    info(`Fetched ${items.length} services to process`);
+    const result = KDGServiceArrayModel.safeParse(response);
+    if (!result.success) {
+      error(
+        "Failed to parse Kerkdienstgemist RSS Feed into expected data model",
+        result.error.issues,
+      );
 
-    for (const item of items) {
+      return;
+    }
+
+    info(
+      `Fetched ${result.data.length} services from Kerkdienstgemist RSS Feed`,
+    );
+
+    for (const service of result.data) {
       try {
-        const processed = await serviceProcessingFlow(item);
+        const processed = await serviceProcessingFlow(service);
 
         if (!processed) {
           info(
-            `${getServiceFileName(item)} was not added because it already existed`,
+            `${getServiceFileName(service)} was not added because it already existed`,
           );
 
           // if not processed (service already exists in firestore)
@@ -78,7 +91,7 @@ export const syncRecentServices = onSchedule(
           continue;
         }
 
-        info(`${getServiceFileName(item)} added`);
+        info(`${getServiceFileName(service)} added`);
       } catch (err) {
         error(err);
       }

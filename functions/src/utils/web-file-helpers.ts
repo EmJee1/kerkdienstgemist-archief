@@ -1,9 +1,11 @@
+import { File } from "@google-cloud/storage";
 import axios, { AxiosRequestConfig } from "axios";
 import { error } from "firebase-functions/logger";
+import * as z from "zod";
 import { bucket, firestore } from "../firebase/firebase";
-import { IKDGService, IService } from "../models/kerkdienst-gemist";
-import { File } from "@google-cloud/storage";
+import { IService } from "../models/kerkdienst-gemist";
 import { addPastorToIndexIfNotAlreadyExists } from "./pastors-index";
+import { KDGServiceModel } from "../models/validation";
 
 export const downloadFromUrl = async (
   url: string,
@@ -30,14 +32,14 @@ export const uploadFileToStorage = async (
   return [fileLocation, file];
 };
 
-export const getServiceFileName = (service: IKDGService) =>
+export const getServiceFileName = (service: z.infer<typeof KDGServiceModel>) =>
   service.link.split("/")[service.link.split("/").length - 1].toLowerCase();
 
-export const getServiceId = (service: IKDGService) =>
+export const getServiceId = (service: z.infer<typeof KDGServiceModel>) =>
   getServiceFileName(service).split("-")[0];
 
 export const insertServiceToFirestore = async (
-  service: IKDGService,
+  service: z.infer<typeof KDGServiceModel>,
   location: string,
   file: File,
 ): Promise<IService> => {
@@ -67,12 +69,16 @@ export const insertServiceToFirestore = async (
   }
 };
 
-export const serviceExistsInFirestore = async (service: IKDGService) => {
+export const serviceExistsInFirestore = async (
+  service: z.infer<typeof KDGServiceModel>,
+) => {
   const docId = getServiceId(service);
   return (await firestore.collection("services").doc(docId).get()).exists;
 };
 
-export const serviceProcessingFlow = async (service: IKDGService) => {
+export const serviceProcessingFlow = async (
+  service: z.infer<typeof KDGServiceModel>,
+) => {
   const fileName = getServiceFileName(service);
 
   if (await serviceExistsInFirestore(service)) {

@@ -1,5 +1,4 @@
 import RssParser from "rss-parser";
-import { IKDGService } from "../models/kerkdienst-gemist";
 
 const parser = new RssParser();
 
@@ -11,7 +10,7 @@ interface KerkdienstgemistSecrets {
 export const getKDGServices = async (
   secrets: KerkdienstgemistSecrets,
   limit = 9,
-): Promise<IKDGService[]> => {
+): Promise<unknown[]> => {
   const url = new URL(
     `https://kerkdienstgemist.nl/playlists/${secrets.playlist}.rss`,
   );
@@ -23,5 +22,5 @@ export const getKDGServices = async (
   }).toString();
 
   const services = await parser.parseURL(url.toString());
-  return services.items as IKDGService[];
+  return services.items;
 };
