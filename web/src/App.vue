@@ -111,6 +111,7 @@ import EditServiceDialog from "@/components/EditServiceDialog.vue";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-vue-next";
 import { columns } from "@/components/columns";
+import { getServiceDownloadURL } from "@/lib/storage.ts";
 
 const { user, loading: authLoading, logout } = useAuth();
 
@@ -121,9 +122,6 @@ const hasMore = ref(true);
 const loadingServiceId = ref<string | null>(null);
 const scrollTrigger = ref<HTMLElement | null>(null);
 const LIMIT = 18;
-
-const CLOUD_FUNCTION_BASE_URL =
-  "https://us-central1-kerdienstgemist-archief.cloudfunctions.net";
 
 // Filter state
 const dateFrom = ref("");
@@ -242,30 +240,8 @@ const handleLogout = async () => {
   }
 };
 
-const fetchSignedUrl = async (service: IService): Promise<string | null> => {
-  loadingServiceId.value = service.id;
-
-  try {
-    const url = `${CLOUD_FUNCTION_BASE_URL}/createSignedServiceDownloadUrl?servicePath=${encodeURIComponent(service.file)}`;
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch signed URL");
-    }
-
-    const data = await response.json();
-    return data.url;
-  } catch (error) {
-    console.error("Error fetching signed URL:", error);
-    toast.error("Fout bij het ophalen van de dienst URL");
-    return null;
-  } finally {
-    loadingServiceId.value = null;
-  }
-};
-
 const viewService = async (service: IService) => {
-  const signedUrl = await fetchSignedUrl(service);
+  const signedUrl = await getServiceDownloadURL(service);
   if (signedUrl) {
     window.open(signedUrl, "_blank");
   }
