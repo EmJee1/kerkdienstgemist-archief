@@ -241,10 +241,14 @@ const handleLogout = async () => {
 };
 
 const viewService = async (service: IService) => {
+  loadingServiceId.value = service.id;
+
   const signedUrl = await getServiceDownloadURL(service);
   if (signedUrl) {
     window.open(signedUrl, "_blank");
   }
+
+  loadingServiceId.value = null;
 };
 
 const editService = (service: IService) => {
