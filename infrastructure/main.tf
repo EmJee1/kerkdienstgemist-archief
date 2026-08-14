@@ -239,7 +239,7 @@ resource "google_cloud_run_v2_service" "ingest" {
   }
 
   depends_on = [
-    google_secret_manager_secret_iam_member.discovery_reads_key,
+    google_secret_manager_secret_iam_member.ingest_reads_key,
   ]
 }
 
@@ -269,4 +269,9 @@ resource "google_workflows_workflow" "kdg_backup" {
   name            = "kdg-backup"
   region          = var.project_region
   service_account = google_service_account.workflow_executor.id
+  source_contents = ""
+
+  depends_on = [
+    google_project_service.required_apis,
+  ]
 }
