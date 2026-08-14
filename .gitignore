@@ -70,3 +70,6 @@ dist
 dist-ssr
 
 .idea
+
+# Terraform
+.terraform
