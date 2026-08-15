@@ -39,6 +39,19 @@ resource "google_storage_bucket" "rss-snapshots" {
   versioning {
     enabled = false
   }
+
+  lifecycle_rule {
+    condition {
+      age = 30
+    }
+    action {
+      type = "Delete"
+    }
+  }
+
+  soft_delete_policy {
+    retention_duration_seconds = 0
+  }
 }
 
 resource "google_storage_bucket" "recordings" {
