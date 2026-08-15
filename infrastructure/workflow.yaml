@@ -1,4 +1,29 @@
 main:
+  params: [args]
   steps:
-    - noop:
-      return: \"ok\"
+    - init:
+        assign:
+          - name: ${default(map.get(args, "name"), "world")}
+          - items: ["a", "b", "c"]
+          - seen: []
+    - logStart:
+        call: sys.log
+        args:
+          text: ${"starting for " + name}
+          severity: INFO
+    - loop:
+        for:
+          value: item
+          in: ${items}
+          steps:
+            - collect:
+                assign:
+                  - seen: ${list.concat(seen, item)}
+    - pause:
+        call: sys.sleep
+        args:
+          seconds: 20
+    - done:
+        return:
+          greeting: ${"hello " + name}
+          seen: ${seen}

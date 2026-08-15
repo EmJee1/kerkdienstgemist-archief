@@ -11,7 +11,13 @@ provider "google" {
 # ----------------------------------------------------
 resource "google_project_service" "required_apis" {
   for_each = toset([
-    "workflows.googleapis.com"
+    "artifactregistry.googleapis.com",
+    "firestore.googleapis.com",
+    "iam.googleapis.com",
+    "run.googleapis.com",
+    "secretmanager.googleapis.com",
+    "storage.googleapis.com",
+    "workflows.googleapis.com",
   ])
 
   project            = var.project
@@ -269,7 +275,7 @@ resource "google_workflows_workflow" "kdg_backup" {
   name            = "kdg-backup"
   region          = var.project_region
   service_account = google_service_account.workflow_executor.id
-  source_contents = ""
+  source_contents = file("workflow.yaml")
 
   depends_on = [
     google_project_service.required_apis,
