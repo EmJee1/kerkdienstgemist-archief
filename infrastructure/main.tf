@@ -82,6 +82,17 @@ resource "google_secret_manager_secret" "feed_access_key" {
   }
 }
 
+# Bootstrap placeholder secret to make sure our Cloud Run deployments succeed.
+# The real key is set manually via `gcloud secrets versions add`.
+resource "google_secret_manager_secret_version" "feed_access_key_bootstrap" {
+  secret      = google_secret_manager_secret.feed_access_key.id
+  secret_data = "REPLACE_ME"
+
+  lifecycle {
+    ignore_changes = [secret_data]
+  }
+}
+
 resource "google_service_account" "discovery_runtime" {
   account_id   = "kdg-discovery"
   display_name = "kdg discovery runtime"
@@ -189,6 +200,7 @@ resource "google_cloud_run_v2_service" "discovery" {
 
   depends_on = [
     google_secret_manager_secret_iam_member.discovery_reads_key,
+    google_secret_manager_secret_version.feed_access_key_bootstrap,
   ]
 }
 
@@ -259,6 +271,7 @@ resource "google_cloud_run_v2_service" "ingest" {
 
   depends_on = [
     google_secret_manager_secret_iam_member.ingest_reads_key,
+    google_secret_manager_secret_version.feed_access_key_bootstrap,
   ]
 }
 
