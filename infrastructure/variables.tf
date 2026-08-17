@@ -30,6 +30,12 @@ variable "backup_schedule" {
   default     = null
 }
 
+variable "deletion_protection" {
+  type        = bool
+  description = "Whether Cloud Run services are protected against deletion. Set false in throwaway environments where the stack needs to be destroyable."
+  default     = true
+}
+
 locals {
   bootstrap_image           = "us-docker.pkg.dev/cloudrun/container/hello"
   backup_schedule_time_zone = "Europe/Amsterdam"

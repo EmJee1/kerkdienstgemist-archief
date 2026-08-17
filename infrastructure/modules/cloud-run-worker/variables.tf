@@ -103,8 +103,8 @@ variable "ingress" {
 
 variable "deletion_protection" {
   type        = bool
-  description = "Whether the service is protected against deletion"
-  default     = false
+  description = "Whether the service is protected against deletion. Terraform cannot destroy or replace a protected service until this is set back to false and applied."
+  default     = true
 }
 
 # ----------------------------------------------------

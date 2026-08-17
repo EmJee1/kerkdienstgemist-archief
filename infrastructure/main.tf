@@ -10,7 +10,8 @@ resource "google_project_service" "required_apis" {
     "secretmanager.googleapis.com",
     "storage.googleapis.com",
     "workflows.googleapis.com",
-    "cloudscheduler.googleapis.com"
+    "cloudscheduler.googleapis.com",
+    "workflowexecutions.googleapis.com",
   ])
 
   project            = var.project
@@ -65,10 +66,11 @@ module "discovery" {
   location = var.project_region
   image    = local.bootstrap_image
 
-  timeout           = "540s"
-  max_concurrency   = 4
-  max_instances     = 2
-  startup_cpu_boost = true
+  timeout             = "540s"
+  max_concurrency     = 4
+  max_instances       = 2
+  startup_cpu_boost   = true
+  deletion_protection = var.deletion_protection
 
   env = {
     KDG_FEED_ID    = var.feed_id
@@ -108,6 +110,7 @@ module "ingest" {
   max_concurrency       = 1
   max_instances         = 3
   execution_environment = "EXECUTION_ENVIRONMENT_GEN2"
+  deletion_protection   = var.deletion_protection
 
   env = {
     KDG_FEED_ID            = var.feed_id
@@ -155,6 +158,10 @@ module "backup_workflow" {
     ingest = {
       name     = module.ingest.name
       location = module.ingest.location
+    }
+    discovery = {
+      name     = module.discovery.name
+      location = module.discovery.location
     }
   }
 
