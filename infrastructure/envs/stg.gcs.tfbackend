@@ -1,0 +1,2 @@
+bucket = "tf-state-stg"
+prefix = "terraform/state"

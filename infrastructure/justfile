@@ -1,0 +1,33 @@
+# Both the backend and the var file are derived from env, so they can never
+# point at different environments.
+#
+#   just plan stg
+#   just apply prd
+
+set shell := ["bash", "-uc"]
+
+_default:
+    @just --list
+
+# Point terraform at one env's backend. Always -reconfigure, otherwise a switch plans against the previous env's state.
+init env=("stg"):
+    @just _check {{ env }}
+    terraform init -reconfigure -input=false -backend-config=envs/{{ env }}.gcs.tfbackend
+
+plan env=("stg"): (init env)
+    terraform plan -input=false -var-file=envs/{{ env }}.tfvars
+
+apply env=("stg"): (init env)
+    terraform apply -input=false -var-file=envs/{{ env }}.tfvars
+
+output env=("stg"): (init env)
+    terraform output
+
+fmt:
+    terraform fmt -recursive
+
+validate:
+    terraform validate
+
+_check env:
+    @[[ "{{ env }}" == "stg" || "{{ env }}" == "prd" ]] || { echo "env must be stg or prd, got '{{ env }}'" >&2; exit 1; }

@@ -6,10 +6,8 @@ terraform {
     }
   }
 
-  backend "gcs" {
-    bucket = "tf-state-stg"
-    prefix = "terraform/state"
-  }
+  # Configured per env via envs/<env>.gcs.tfbackend
+  backend "gcs" {}
 
   required_version = ">= 1.15"
 }
