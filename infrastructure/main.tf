@@ -1,12 +1,4 @@
 # ----------------------------------------------------
-# Required TF providers.
-# ----------------------------------------------------
-provider "google" {
-  project = var.project
-  region  = var.project_region
-}
-
-# ----------------------------------------------------
 # Enable Required APIs
 # ----------------------------------------------------
 resource "google_project_service" "required_apis" {
@@ -18,6 +10,7 @@ resource "google_project_service" "required_apis" {
     "secretmanager.googleapis.com",
     "storage.googleapis.com",
     "workflows.googleapis.com",
+    "cloudscheduler.googleapis.com"
   ])
 
   project            = var.project
@@ -26,284 +19,147 @@ resource "google_project_service" "required_apis" {
 }
 
 # ----------------------------------------------------
-# Storage Bucket
+# Storage Buckets
 # ----------------------------------------------------
-resource "google_storage_bucket" "rss-snapshots" {
+module "rss_snapshots_bucket" {
+  source = "./modules/storage-bucket"
+
   name     = "${var.project}-rss-snapshots"
   location = var.project_region
 
-  storage_class               = "STANDARD"
-  uniform_bucket_level_access = true
-  public_access_prevention    = "enforced"
+  delete_after_days             = 30
+  soft_delete_retention_seconds = 0
 
-  versioning {
-    enabled = false
-  }
-
-  lifecycle_rule {
-    condition {
-      age = 30
-    }
-    action {
-      type = "Delete"
-    }
-  }
-
-  soft_delete_policy {
-    retention_duration_seconds = 0
-  }
+  depends_on = [google_project_service.required_apis]
 }
 
-resource "google_storage_bucket" "recordings" {
+module "recordings_bucket" {
+  source = "./modules/storage-bucket"
+
   name     = "${var.project}-recordings"
   location = var.project_region
 
-  storage_class               = "STANDARD"
-  uniform_bucket_level_access = true
-  public_access_prevention    = "enforced"
+  depends_on = [google_project_service.required_apis]
+}
 
-  versioning {
-    enabled = false
-  }
+# ----------------------------------------------------
+# Secrets
+# ----------------------------------------------------
+module "feed_access_key" {
+  source = "./modules/secret"
+
+  secret_id         = "kdg-feed-access-key"
+  replica_locations = [var.project_region]
+
+  depends_on = [google_project_service.required_apis]
 }
 
 # ----------------------------------------------------
 # Services
 # ----------------------------------------------------
-resource "google_secret_manager_secret" "feed_access_key" {
-  secret_id = "kdg-feed-access-key"
+module "discovery" {
+  source = "./modules/cloud-run-worker"
 
-  replication {
-    user_managed {
-      replicas {
-        location = var.project_region
-      }
-    }
+  name     = "discovery"
+  project  = var.project
+  location = var.project_region
+  image    = local.bootstrap_image
+
+  timeout           = "540s"
+  max_concurrency   = 4
+  max_instances     = 2
+  startup_cpu_boost = true
+
+  env = {
+    KDG_FEED_ID    = var.feed_id
+    ARCHIVE_BUCKET = module.rss_snapshots_bucket.name
+    NODE_ENV       = "production"
   }
-}
 
-# Bootstrap placeholder secret to make sure our Cloud Run deployments succeed.
-# The real key is set manually via `gcloud secrets versions add`.
-resource "google_secret_manager_secret_version" "feed_access_key_bootstrap" {
-  secret      = google_secret_manager_secret.feed_access_key.id
-  secret_data = "REPLACE_ME"
-
-  lifecycle {
-    ignore_changes = [secret_data]
+  secret_env = {
+    KDG_ACCESS_KEY = { secret_id = module.feed_access_key.secret_id }
   }
-}
 
-resource "google_service_account" "discovery_runtime" {
-  account_id   = "kdg-discovery"
-  display_name = "kdg discovery runtime"
-}
+  project_roles = ["roles/datastore.user"]
 
-resource "google_service_account" "ingest_runtime" {
-  account_id   = "kdg-ingest"
-  display_name = "kdg ingest runtime"
-}
-
-resource "google_project_iam_member" "discovery_firestore" {
-  project = var.project
-  role    = "roles/datastore.user"
-  member  = google_service_account.discovery_runtime.member
-}
-
-resource "google_project_iam_member" "ingest_firestore" {
-  project = var.project
-  role    = "roles/datastore.user"
-  member  = google_service_account.ingest_runtime.member
-}
-
-resource "google_storage_bucket_iam_member" "discovery_archive_writer" {
-  bucket = google_storage_bucket.rss-snapshots.name
-  role   = "roles/storage.objectCreator"
-  member = google_service_account.discovery_runtime.member
-}
-
-resource "google_storage_bucket_iam_member" "ingest_media_admin" {
-  bucket = google_storage_bucket.recordings.name
-  role   = "roles/storage.objectAdmin"
-  member = google_service_account.ingest_runtime.member
-}
-
-resource "google_secret_manager_secret_iam_member" "discovery_reads_key" {
-  secret_id = google_secret_manager_secret.feed_access_key.secret_id
-  role      = "roles/secretmanager.secretAccessor"
-  member    = google_service_account.discovery_runtime.member
-}
-
-resource "google_secret_manager_secret_iam_member" "ingest_reads_key" {
-  secret_id = google_secret_manager_secret.feed_access_key.secret_id
-  role      = "roles/secretmanager.secretAccessor"
-  member    = google_service_account.ingest_runtime.member
-}
-
-resource "google_cloud_run_v2_service" "discovery" {
-  name                = "discovery"
-  location            = var.project_region
-  deletion_protection = false
-  ingress             = "INGRESS_TRAFFIC_ALL"
-
-  template {
-    service_account                  = google_service_account.discovery_runtime.email
-    timeout                          = "540s"
-    max_instance_request_concurrency = 4
-
-    scaling {
-      min_instance_count = 0
-      max_instance_count = 2
-    }
-
-    containers {
-      image = local.bootstrap_image
-
-      resources {
-        limits            = { cpu = "1", memory = "512Mi" }
-        cpu_idle          = true
-        startup_cpu_boost = true
-      }
-
-      env {
-        name  = "KDG_FEED_ID"
-        value = var.feed_id
-      }
-
-      env {
-        name = "KDG_ACCESS_KEY"
-        value_source {
-          secret_key_ref {
-            secret  = google_secret_manager_secret.feed_access_key.secret_id
-            version = "latest"
-          }
-        }
-      }
-
-      env {
-        name  = "ARCHIVE_BUCKET"
-        value = google_storage_bucket.rss-snapshots.name
-      }
-      env {
-        name  = "NODE_ENV"
-        value = "production"
-      }
+  bucket_roles = {
+    snapshots = {
+      bucket = module.rss_snapshots_bucket.name
+      role   = "roles/storage.objectCreator"
     }
   }
 
-  lifecycle {
-    ignore_changes = [
-      template[0].containers[0].image,
-      client,
-      client_version,
-    ]
+  secret_roles = {
+    feed_access_key = { secret_id = module.feed_access_key.secret_id }
   }
 
-  depends_on = [
-    google_secret_manager_secret_iam_member.discovery_reads_key,
-    google_secret_manager_secret_version.feed_access_key_bootstrap,
-  ]
+  depends_on = [module.feed_access_key]
 }
 
-resource "google_cloud_run_v2_service" "ingest" {
-  name                = "ingest"
-  location            = var.project_region
-  deletion_protection = false
-  ingress             = "INGRESS_TRAFFIC_ALL"
+module "ingest" {
+  source = "./modules/cloud-run-worker"
 
-  template {
-    service_account                  = google_service_account.ingest_runtime.email
-    timeout                          = "1800s"
-    max_instance_request_concurrency = 1
-    execution_environment            = "EXECUTION_ENVIRONMENT_GEN2"
+  name     = "ingest"
+  project  = var.project
+  location = var.project_region
+  image    = local.bootstrap_image
 
-    scaling {
-      min_instance_count = 0
-      max_instance_count = 3
-    }
+  timeout               = "1800s"
+  max_concurrency       = 1
+  max_instances         = 3
+  execution_environment = "EXECUTION_ENVIRONMENT_GEN2"
 
-    containers {
-      image = local.bootstrap_image
+  env = {
+    KDG_FEED_ID            = var.feed_id
+    MEDIA_BUCKET           = module.recordings_bucket.name
+    LEASE_DURATION_SECONDS = "2400"
+    ABORT_AFTER_MS         = "1700000"
+    NODE_ENV               = "production"
+  }
 
-      resources {
-        limits   = { cpu = "1", memory = "512Mi" }
-        cpu_idle = true
-      }
+  secret_env = {
+    KDG_ACCESS_KEY = { secret_id = module.feed_access_key.secret_id }
+  }
 
-      env {
-        name  = "KDG_FEED_ID"
-        value = var.feed_id
-      }
-      env {
-        name = "KDG_ACCESS_KEY"
-        value_source {
-          secret_key_ref {
-            secret  = google_secret_manager_secret.feed_access_key.secret_id
-            version = "latest"
-          }
-        }
-      }
-      env {
-        name  = "MEDIA_BUCKET"
-        value = google_storage_bucket.recordings.name
-      }
-      env {
-        name  = "LEASE_DURATION_SECONDS"
-        value = "2400"
-      }
-      env {
-        name  = "ABORT_AFTER_MS"
-        value = "1700000"
-      }
-      env {
-        name  = "NODE_ENV"
-        value = "production"
-      }
+  project_roles = ["roles/datastore.user"]
+
+  bucket_roles = {
+    recordings = {
+      bucket = module.recordings_bucket.name
+      role   = "roles/storage.objectAdmin"
     }
   }
 
-  lifecycle {
-    ignore_changes = [
-      template[0].containers[0].image,
-      client,
-      client_version,
-    ]
+  secret_roles = {
+    feed_access_key = { secret_id = module.feed_access_key.secret_id }
   }
 
-  depends_on = [
-    google_secret_manager_secret_iam_member.ingest_reads_key,
-    google_secret_manager_secret_version.feed_access_key_bootstrap,
-  ]
+  depends_on = [module.feed_access_key]
 }
 
 # ----------------------------------------------------
 # Workflow
 # ----------------------------------------------------
-resource "google_service_account" "workflow_executor" {
-  account_id   = "kdg-workflow"
-  display_name = "kdg-backup workflow executor"
-}
+module "backup_workflow" {
+  source = "./modules/workflow"
 
-resource "google_project_iam_member" "workflow_logs" {
-  project = var.project
-  role    = "roles/logging.logWriter"
-  member  = google_service_account.workflow_executor.member
-}
-
-resource "google_cloud_run_v2_service_iam_member" "workflow_invokes_ingest" {
-  project  = var.project
-  location = var.project_region
-  name     = google_cloud_run_v2_service.ingest.name
-  role     = "roles/run.invoker"
-  member   = google_service_account.workflow_executor.member
-}
-
-resource "google_workflows_workflow" "kdg_backup" {
   name            = "kdg-backup"
+  project         = var.project
   region          = var.project_region
-  service_account = google_service_account.workflow_executor.id
-  source_contents = file("workflow.yaml")
+  source_contents = file("${path.module}/workflow.yaml")
 
-  depends_on = [
-    google_project_service.required_apis,
-  ]
+  service_account_id           = "kdg-workflow"
+  service_account_display_name = "kdg-backup workflow executor"
+
+  invokes_cloud_run = {
+    ingest = {
+      name     = module.ingest.name
+      location = module.ingest.location
+    }
+  }
+
+  schedule           = var.backup_schedule
+  schedule_time_zone = local.backup_schedule_time_zone
+
+  depends_on = [google_project_service.required_apis]
 }

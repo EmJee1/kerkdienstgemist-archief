@@ -13,3 +13,8 @@ terraform {
 
   required_version = ">= 1.15"
 }
+
+provider "google" {
+  project = var.project
+  region  = var.project_region
+}
