@@ -75,3 +75,6 @@ dist-ssr
 .terraform
 *.tfstate
 *.tfstate.*
+
+# Turborepo
+.turbo

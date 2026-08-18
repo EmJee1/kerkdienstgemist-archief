@@ -1,0 +1,7 @@
+{
+  "extends": "@kdg/config-typescript/node.json",
+  "compilerOptions": {
+    "out": "dist"
+  },
+  "include": "src"
+}

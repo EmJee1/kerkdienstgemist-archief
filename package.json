@@ -1,0 +1,22 @@
+{
+  "name": "kerkdienstgemist-archive",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "packageManager": "npm@11.11.0",
+  "scripts": {
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "turbo": "2.10.10",
+    "typescript": "7.0.2"
+  },
+  "volta": {
+    "node": "26.7.0"
+  }
+}

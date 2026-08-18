@@ -1,0 +1,30 @@
+{
+  "name": "@kdg/feed",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./*": {
+      "types": "./src/*.ts",
+      "default": "./dist/*.js"
+    }
+  },
+  "imports": {
+    "#*": "./dist/*"
+  },
+  "scripts": {
+    "dev": "tsc --watch -p tsconfig.json",
+    "build": "tsc -p tsconfig.json",
+    "check-types": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@kdg/config-typescript": "*",
+    "@kdg/core": "*",
+    "fast-xml-parser": "5.11.0",
+    "neverthrow": "8.2.0"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

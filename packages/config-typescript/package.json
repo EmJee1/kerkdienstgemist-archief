@@ -1,0 +1,6 @@
+{
+  "name": "@kdg/config-typescript",
+  "imports": {
+    "#*": "./dist/*"
+  }
+}
