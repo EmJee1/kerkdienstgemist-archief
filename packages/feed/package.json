@@ -4,14 +4,14 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "imports": {
+    "#*": "./dist/*"
+  },
   "exports": {
     "./*": {
       "types": "./src/*.ts",
       "default": "./dist/*.js"
     }
-  },
-  "imports": {
-    "#*": "./dist/*"
   },
   "scripts": {
     "dev": "tsc --watch -p tsconfig.json",

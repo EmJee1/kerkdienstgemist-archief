@@ -6,8 +6,7 @@ Archive for church services hosted at [kerkdienstgemist-archief.mart-jan.nl/](ht
 
 ### functions
 
-Firebase Cloud Functions that handle RSS feed parsing and automated archival. Built with TypeScript and runs on Node.js
-22.
+Firebase Cloud Functions that handle RSS feed parsing and automated archival. Built with TypeScript and runs on Node.js 22.
 
 ### upload
 

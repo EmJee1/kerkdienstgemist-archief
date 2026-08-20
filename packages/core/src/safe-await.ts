@@ -12,21 +12,19 @@
  * console.log('Data:', data);
  * ```
  */
-export async function safeAwait<T>(
-	promise: Promise<T> | T
-): Promise<[T, null] | [null, Error]> {
-	try {
-		const result = await promise;
-		return [result, null];
-	} catch (err: unknown) {
-		if (err instanceof Error) {
-			return [null, err];
-		}
+export async function safeAwait<T>(promise: Promise<T> | T): Promise<[T, null] | [null, Error]> {
+  try {
+    const result = await promise;
+    return [result, null];
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      return [null, err];
+    }
 
-		if (typeof err === 'string') {
-			return [null, new Error(err)];
-		}
+    if (typeof err === 'string') {
+      return [null, new Error(err)];
+    }
 
-		return [null, new Error(String(err))];
-	}
+    return [null, new Error(String(err))];
+  }
 }

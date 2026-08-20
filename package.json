@@ -5,15 +5,16 @@
     "apps/*",
     "packages/*"
   ],
-  "packageManager": "npm@11.11.0",
   "scripts": {
     "build": "turbo run build",
     "test": "turbo run test",
     "lint": "turbo run lint",
-    "lint:fix": "turbo run lint:fix"
+    "lint:fix": "turbo run lint:fix",
+    "fmt": "oxfmt"
   },
   "devDependencies": {
     "@types/node": "26.2.0",
+    "oxfmt": "^0.64.0",
     "oxlint": "^1.78.0",
     "oxlint-tsgolint": "7.0.2001",
     "turbo": "2.10.10",
@@ -21,5 +22,6 @@
   },
   "volta": {
     "node": "26.7.0"
-  }
+  },
+  "packageManager": "npm@11.11.0"
 }
