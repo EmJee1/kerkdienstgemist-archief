@@ -1,5 +1,8 @@
 {
   "compilerOptions": {
+    "rootDir": "${configDir}/src",
+    "outDir": "${configDir}/dist",
+
     "esModuleInterop": true,
     "skipLibCheck": true,
     "target": "es2024",

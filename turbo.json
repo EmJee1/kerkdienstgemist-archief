@@ -1,11 +1,20 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
+  "globalDependencies": [".oxlintrc.json"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**"]
     },
-    "lint": { "dependsOn": ["^lint"] },
-    "test": { "dependsOn": ["^build"] }
+    "test": {
+      "dependsOn": ["^build"]
+    },
+    "lint": {
+      "dependsOn": ["^build"]
+    },
+    "lint:fix": {
+      "dependsOn": ["^build"],
+      "cache": false
+    }
   }
 }
