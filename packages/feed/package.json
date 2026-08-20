@@ -16,9 +16,11 @@
   "scripts": {
     "dev": "tsc --watch -p tsconfig.json",
     "build": "tsc -p tsconfig.json",
-    "check-types": "tsc --noEmit -p tsconfig.json"
+    "check-types": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint ."
   },
   "dependencies": {
+    "@kdg/config-eslint": "*",
     "@kdg/config-typescript": "*",
     "@kdg/core": "*",
     "fast-xml-parser": "5.11.0",
