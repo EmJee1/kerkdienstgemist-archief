@@ -16,11 +16,9 @@
   "scripts": {
     "dev": "tsc --watch -p tsconfig.json",
     "build": "tsc -p tsconfig.json",
-    "check-types": "tsc --noEmit -p tsconfig.json",
-    "lint": "eslint ."
+    "check-types": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@kdg/config-eslint": "*",
     "@kdg/config-typescript": "*"
   },
   "volta": {
