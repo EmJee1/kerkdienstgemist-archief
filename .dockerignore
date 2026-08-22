@@ -1,0 +1,33 @@
+# Everything the monorepo build does not need. Keep this tight: the whole
+# context is sent to the daemon and `turbo prune` copies what is left.
+**/node_modules
+**/dist
+**/dist-ssr
+**/.turbo
+**/.next
+**/coverage
+**/*.log
+
+.git
+.github
+.idea
+.vscode
+.firebase
+
+# Not npm workspaces, so never part of an app image.
+web
+functions
+upload
+infrastructure
+
+# Local-only config and anything secret-shaped.
+**/.env
+**/.env.*
+!**/.public.env
+**/service-account-file.json
+*.tfstate
+*.tfstate.*
+
+Dockerfile
+.dockerignore
+README.md

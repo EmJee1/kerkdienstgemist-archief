@@ -19,6 +19,6 @@ const server = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ ok: true }));
 });
 
-server.listen(config.port, 'localhost', () => {
-  console.log(`Server running at http://localhost:${config.port}/`);
+server.listen(config.port, config.host, () => {
+  console.log(`Server listening on ${config.host}:${config.port}`);
 });
