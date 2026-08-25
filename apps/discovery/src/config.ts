@@ -1,10 +1,13 @@
-import { err, ok } from 'neverthrow';
-
 import { valueForEnvironment } from '#environment';
 
 function stringConfigOrFail(variable: string) {
   const value = process.env[variable];
-  return value ? ok(value) : err({ kind: 'missingEnvironmentVariable', variable });
+  if (!value) {
+    console.log(`Missing required environment variable "${variable}"`);
+    process.exit(1);
+  }
+
+  return value;
 }
 
 export const config = valueForEnvironment({
